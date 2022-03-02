@@ -3,8 +3,10 @@
 # given the ticket number and a reference to which macro to use
 # some kind of output file to record any potential edge cases/failures
 from base64 import b64encode
+import pandas as pd
 import configparser
 import requests
+import argparse
 import logging
 
 config = configparser.RawConfigParser()
@@ -12,9 +14,9 @@ config.read('../src/auth.ini')
 DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
 
-def main(logger): 
-    sup_file = "sup.csv"
-    eng_file = "eng.csv"
+def main(logger,args): 
+    sup_file = "sup.csv" # args[0]
+    eng_file = "eng.csv" # args[1]
     merge_file = generate_worksheet(sup_file, eng_file)
     for i,request in enumerate(merge_file):
         result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
@@ -77,5 +79,7 @@ def get_macro_data(macro):
 if __name__ =="__main__":
     # TODO: set logging level based on input
     logger = logging.getLogger()
+    parser = argparse.ArgumentParser()
     logger.setLevel(logging.INFO)
-    main(logger)
+    args = parser.parse_args()
+    main(logger,args)
