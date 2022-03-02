@@ -13,9 +13,19 @@ DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
 
 def main(logger): 
-    test_ticket_num = 99999999# TODO: create test ticket, but number here
-    result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
-    print(result)
+    doc1 = pd.read_csv("eng.csv", header=None) # we want columns 1(email) and 3(output)
+    doc2 = pd.read_csv("sup.csv", header=None) # 0(tId) and 1(email)
+    doc_lst = [ [row[1],row[3]] for i,row in doc1.iterrows() ] # making doc1 a list with the values we want
+    for i,result in enumerate(doc_lst):
+        # I need to find a row by value of a column, then pull a specific column value from that row
+        doc_lst[i].append(doc2.loc[doc2[1] == result[0]][0]) # append the ticketid in the df row matching the email column of result
+    print(doc_lst)
+    for i,request in enumerate(doc_lst):
+        result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
+        doc_lst[i].append(result.status()) # append the result of the api request
+    #test_ticket_num = 99999999# TODO: create test ticket, but number here
+    #result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
+    print(doc_lst)
     return 0
 
 def post_comment(dom, auth, ticket_num, macro):
