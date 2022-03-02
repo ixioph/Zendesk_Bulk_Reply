@@ -3,8 +3,10 @@
 # given the ticket number and a reference to which macro to use
 # some kind of output file to record any potential edge cases/failures
 from base64 import b64encode
+import pandas as pd
 import configparser
 import requests
+import argparse
 import logging
 
 config = configparser.RawConfigParser()
@@ -12,11 +14,27 @@ config.read('../src/auth.ini')
 DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
 
-def main(logger): 
-    test_ticket_num = 99999999# TODO: create test ticket, but number here
-    result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
-    print(result)
+def main(logger,args): 
+    sup_file = "sup.csv" # args[0]
+    eng_file = "eng.csv" # args[1]
+    merge_file = generate_worksheet(sup_file, eng_file)
+    for i,request in enumerate(merge_file):
+        result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
+        merge_file[i].append(result.status()) # append the result of the api request
+    #test_ticket_num = 99999999# TODO: create test ticket, but number here
+    #result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
+    print(merge_file)
     return 0
+
+def generate_worksheet(sup_csv, eng_csv):
+    doc1 = pd.read_csv(eng_csv, header=None) # we want columns 1(email) and 3(output)
+    doc2 = pd.read_csv(sup_csv, header=None) # 0(tId) and 1(email)
+    doc_lst = [ [row[1],row[3]] for i,row in doc1.iterrows() ] # making doc1 a list with the values we want
+    for i,result in enumerate(doc_lst):
+        # I need to find a row by value of a column, then pull a specific column value from that row
+        doc_lst[i].append(doc2.loc[doc2[1] == result[0]][0]) # append the ticketid in the df row matching the email column of result
+    print(doc_lst)
+    return doc_lst
 
 def post_comment(dom, auth, ticket_num, macro):
     url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
@@ -61,5 +79,7 @@ def get_macro_data(macro):
 if __name__ =="__main__":
     # TODO: set logging level based on input
     logger = logging.getLogger()
+    parser = argparse.ArgumentParser()
     logger.setLevel(logging.INFO)
-    main(logger)
+    args = parser.parse_args()
+    main(logger,args)
