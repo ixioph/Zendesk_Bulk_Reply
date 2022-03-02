@@ -10,17 +10,17 @@ import argparse
 import logging
 
 config = configparser.RawConfigParser()
-config.read('../src/auth.ini')
+config.read('./src/auth.ini')
 DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
 
 def main(logger,args): 
-    sup_file = "sup.csv" # args[0]
-    eng_file = "eng.csv" # args[1]
+    sup_file = "./src/sup.csv" # args[0]
+    eng_file = "./src/eng.csv" # args[1]
     merge_file = generate_worksheet(sup_file, eng_file)
-    for i,request in enumerate(merge_file):
-        result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
-        merge_file[i].append(result.status()) # append the result of the api request
+    # for i,request in enumerate(merge_file):
+    #     result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
+    #     merge_file[i].append(result.status()) # append the result of the api request
     #test_ticket_num = 99999999# TODO: create test ticket, but number here
     #result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
     print(merge_file)
@@ -31,8 +31,9 @@ def generate_worksheet(sup_csv, eng_csv):
     doc2 = pd.read_csv(sup_csv, header=None) # 0(tId) and 1(email)
     doc_lst = [ [row[1],row[3]] for i,row in doc1.iterrows() ] # making doc1 a list with the values we want
     for i,result in enumerate(doc_lst):
+        #print((doc2.loc[doc2[1] == result[0]][0]).values)
         # I need to find a row by value of a column, then pull a specific column value from that row
-        doc_lst[i].append(doc2.loc[doc2[1] == result[0]][0]) # append the ticketid in the df row matching the email column of result
+        doc_lst[i].append((doc2.loc[doc2[1] == result[0]][0]).values[0]) # append the ticketid in the df row matching the email column of result
     print(doc_lst)
     return doc_lst
 
