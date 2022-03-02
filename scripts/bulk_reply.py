@@ -8,6 +8,7 @@ import configparser
 import requests
 import argparse
 import logging
+import json
 
 config = configparser.RawConfigParser()
 config.read('./src/auth.ini')
@@ -15,14 +16,13 @@ DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
 
 def main(logger,args): 
-    sup_file = "./src/sup.csv" # args[0]
-    eng_file = "./src/eng.csv" # args[1]
+    print(args)
+    sup_file = "./sup.csv" # args[0]
+    eng_file = "./eng.csv" # args[1]
     merge_file = generate_worksheet(sup_file, eng_file)
-    # for i,request in enumerate(merge_file):
-    #     result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
-    #     merge_file[i].append(result.status()) # append the result of the api request
-    #test_ticket_num = 99999999# TODO: create test ticket, but number here
-    #result = post_comment(DOMAIN, AUTH, test_ticket_num, macro="A")
+    for i,request in enumerate(merge_file):
+        result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
+        merge_file[i].append(result.status_code) # append the result of the api request
     print(merge_file)
     return 0
 
@@ -39,10 +39,14 @@ def generate_worksheet(sup_csv, eng_csv):
 
 def post_comment(dom, auth, ticket_num, macro):
     url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
-    header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1])}
+    print("URL, ", url)
+    header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1]), 'Content-type': 'application/json'}
+    print("HEADER, ", header)
     dat = get_macro_data(macro)
+    print("DATA, ", dat)
     try:
-        result = requests.get(url, data=dat, headers=header)
+        result = requests.put(url, data=json.dumps(dat), headers=header)
+        print(result, "\n","=="*15)
         return result
     except Exception as e:
         print('Error posting comment', str(e))
@@ -50,32 +54,34 @@ def post_comment(dom, auth, ticket_num, macro):
 
 def get_macro_data(macro):
     scenario = None
-    match macro:
-        case "A":
-            scenario = ("Hello,\n"
-            "\tWe recently noticed unusual activity associated with your account."  
-            "Out of an abundance of caution and for your protection, we have temporarily "
-            "locked your account and logged you out of all devices. To regain access to your account, "
-            "all you will need to do is reset your password.\n\n" 
-            "Please take the following steps to change your account password:\n\n"
-            "  * Go to www.funimation.com/log-in\n"
-            "  * Select Forgot Password\n"
-            "  * Enter the email address associated with your Funimation account\n"
-            "  * Select Send\n"
-            "Within 15 minutes, you will receive an email with instructions for resetting your password. "
-            "Follow the instructions to resume Funimation services.\n\n"
-            "If you have any additional questions or concerns please reach out to us at help@funimation.com.")
-        case "B":
-            pass
-        case "C": 
-            pass
-        case _:
-            print("Invalid macro type")
-            exit()
+    # match macro:
+    if macro == "EMAILS_MATCHED":
+        scenario = ("Hello,\n"
+        "\tWe recently noticed unusual activity associated with your account."  
+        "Out of an abundance of caution and for your protection, we have temporarily "
+        "locked your account and logged you out of all devices. To regain access to your account, "
+        "all you will need to do is reset your password.\n\n" 
+        "Please take the following steps to change your account password:\n\n"
+        "  * Go to www.funimation.com/log-in\n"
+        "  * Select Forgot Password\n"
+        "  * Enter the email address associated with your Funimation account\n"
+        "  * Select Send\n"
+        "Within 15 minutes, you will receive an email with instructions for resetting your password. "
+        "Follow the instructions to resume Funimation services.\n\n"
+        "If you have any additional questions or concerns please reach out to us at help@funimation.com.")
+    elif macro ==  "NEW_ACCOUNT_EXISTS_WITH_PREVIOUS_EMAIL":
+        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+    elif macro ==  "COMPROMISED_ACCOUNT_NOT_FOUND": 
+        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+    elif macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED":
+        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+    else:
+        print("Invalid macro type,", macro)
+        exit()
 
     # TODO: what to do with the author_id? Can we grab it from the ticket audit api?
-    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": 99999999 }}}
-    return scenario
+    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": 7519464586 }}}
+    return formatted
 
 if __name__ =="__main__":
     # TODO: set logging level based on input
