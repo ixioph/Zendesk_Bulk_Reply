@@ -6,9 +6,9 @@ from base64 import b64encode
 import pandas as pd
 import configparser
 import requests
-import argparse
 import logging
 import json
+import sys
 
 config = configparser.RawConfigParser()
 config.read('./src/auth.ini')
@@ -17,8 +17,11 @@ AUTH = config['zendesk']['Credentials'].strip('"')
 
 def main(logger,args): 
     print(args)
-    sup_file = "./sup.csv" # args[0]
-    eng_file = "./eng.csv" # args[1]
+    if len(args) != 3:
+        print("USAGE: python bulk_reply.py sup.csv eng.csv")
+        exit()
+    sup_file = args[1]
+    eng_file = args[2]
     merge_file = generate_worksheet(sup_file, eng_file)
     for i,request in enumerate(merge_file):
         result = post_comment(DOMAIN, AUTH, ticket_num=request[2], macro=request[1])
@@ -86,7 +89,6 @@ def get_macro_data(macro):
 if __name__ =="__main__":
     # TODO: set logging level based on input
     logger = logging.getLogger()
-    parser = argparse.ArgumentParser()
     logger.setLevel(logging.INFO)
-    args = parser.parse_args()
+    args = sys.argv
     main(logger,args)
