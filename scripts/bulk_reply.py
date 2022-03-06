@@ -87,7 +87,16 @@ def get_macro_data(macro, assignee_id):
         "Follow the instructions to resume Funimation services.\n\n"
         "If you have any additional questions or concerns please reach out to us at help@funimation.com.")
     elif macro ==  "NEW_ACCOUNT_EXISTS_WITH_PREVIOUS_EMAIL":
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+        scenario = ("Hello,\n"
+        "\tThank you for your patience, and we apologize for any inconvenience you may have experienced."  
+        " Upon further review from our Development Team, it appears that you have created a new account with the email address you are writing in from."
+        " Due to this, no further action is needed at this time.\n\n"
+        "If you ever have issues accessing your account, we recommend trying to reset your password by following these steps:\n" 
+        "  * Go to www.funimation.com/log-in\n"
+        "  * Select Forgot Password\n"
+        "  * Enter the email address associated with your Funimation account\n"
+        "  * Select Send\n"
+        "If you have any further questions, please reach out to us at help@funimation.com.")
     elif macro ==  "COMPROMISED_ACCOUNT_NOT_FOUND": 
         scenario = (f"Hello,\n\t{macro}\n\nBest,")
     elif macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED":
