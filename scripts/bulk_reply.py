@@ -97,10 +97,17 @@ def get_macro_data(macro, assignee_id):
         "  * Enter the email address associated with your Funimation account\n"
         "  * Select Send\n"
         "If you have any further questions, please reach out to us at help@funimation.com.")
-    elif macro ==  "COMPROMISED_ACCOUNT_NOT_FOUND": 
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
-    elif macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED":
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+    elif macro == "COMPROMISED_ACCOUNT_NOT_FOUND" or macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED": 
+        scenario = ("Hello,\n"
+        "\tThank you for your patience. "  
+        "Our Development Team have now investigated and were unable to find any changes on your account, "
+        "which means you should be able to log in as usual. \n\n"
+        "If you are still having trouble accessing your account, we recommend trying to reset your password by following these steps:\n" 
+        "  * Go to www.funimation.com/log-in\n"
+        "  * Select Forgot Password\n"
+        "  * Enter the email address associated with your Funimation account\n"
+        "  * Select Send\n"
+        "If you have any further questions, please reach out to us at help@funimation.com.")
     else:
         print("Invalid macro type,", macro)
         exit()
