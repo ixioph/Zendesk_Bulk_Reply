@@ -40,12 +40,26 @@ def generate_worksheet(sup_csv, eng_csv):
     print(doc_lst)
     return doc_lst
 
+def get_ticket_assignee(dom, auth, ticket_num):
+    url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
+    print("URL, ", url)
+    header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1])}
+    print("HEADER, ", header)
+    
+    try:
+        result = requests.get(url, headers=header)
+        assignee_id = json.loads(result.text)['ticket']['assignee_id']
+        return assignee_id
+    except Exception as e:
+        print('Error posting comment', str(e))
+        exit()
+
 def post_comment(dom, auth, ticket_num, macro):
     url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
     print("URL, ", url)
     header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1]), 'Content-type': 'application/json'}
     print("HEADER, ", header)
-    dat = get_macro_data(macro)
+    dat = get_macro_data(macro, get_ticket_assignee(dom, auth, ticket_num))
     print("DATA, ", dat)
     try:
         result = requests.put(url, data=json.dumps(dat), headers=header)
@@ -55,7 +69,7 @@ def post_comment(dom, auth, ticket_num, macro):
         print('Error posting comment', str(e))
         exit()
 
-def get_macro_data(macro):
+def get_macro_data(macro, assignee_id):
     scenario = None
     # match macro:
     if macro == "EMAILS_MATCHED":
@@ -83,7 +97,7 @@ def get_macro_data(macro):
         exit()
 
     # TODO: what to do with the author_id? Can we grab it from the ticket audit api?
-    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": 7519464586 }}}
+    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": assignee_id }}}
     return formatted
 
 if __name__ =="__main__":
