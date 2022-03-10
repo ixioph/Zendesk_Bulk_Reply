@@ -40,12 +40,26 @@ def generate_worksheet(sup_csv, eng_csv):
     print(doc_lst)
     return doc_lst
 
+def get_ticket_assignee(dom, auth, ticket_num):
+    url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
+    print("URL, ", url)
+    header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1])}
+    print("HEADER, ", header)
+    
+    try:
+        result = requests.get(url, headers=header)
+        assignee_id = json.loads(result.text)['ticket']['assignee_id']
+        return assignee_id
+    except Exception as e:
+        print('Error posting comment', str(e))
+        exit()
+
 def post_comment(dom, auth, ticket_num, macro):
     url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
     print("URL, ", url)
     header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1]), 'Content-type': 'application/json'}
     print("HEADER, ", header)
-    dat = get_macro_data(macro)
+    dat = get_macro_data(macro, get_ticket_assignee(dom, auth, ticket_num))
     print("DATA, ", dat)
     try:
         result = requests.put(url, data=json.dumps(dat), headers=header)
@@ -55,7 +69,7 @@ def post_comment(dom, auth, ticket_num, macro):
         print('Error posting comment', str(e))
         exit()
 
-def get_macro_data(macro):
+def get_macro_data(macro, assignee_id):
     scenario = None
     # match macro:
     if macro == "EMAILS_MATCHED":
@@ -73,17 +87,33 @@ def get_macro_data(macro):
         "Follow the instructions to resume Funimation services.\n\n"
         "If you have any additional questions or concerns please reach out to us at help@funimation.com.")
     elif macro ==  "NEW_ACCOUNT_EXISTS_WITH_PREVIOUS_EMAIL":
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
-    elif macro ==  "COMPROMISED_ACCOUNT_NOT_FOUND": 
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
-    elif macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED":
-        scenario = (f"Hello,\n\t{macro}\n\nBest,")
+        scenario = ("Hello,\n"
+        "\tThank you for your patience, and we apologize for any inconvenience you may have experienced."  
+        " Upon further review from our Development Team, it appears that you have created a new account with the email address you are writing in from."
+        " Due to this, no further action is needed at this time.\n\n"
+        "If you ever have issues accessing your account, we recommend trying to reset your password by following these steps:\n" 
+        "  * Go to www.funimation.com/log-in\n"
+        "  * Select Forgot Password\n"
+        "  * Enter the email address associated with your Funimation account\n"
+        "  * Select Send\n"
+        "If you have any further questions, please reach out to us at help@funimation.com.")
+    elif macro == "COMPROMISED_ACCOUNT_NOT_FOUND" or macro == "NOT_COMPROMISED_BECAUSE_EMAILS_MATCHED": 
+        scenario = ("Hello,\n"
+        "\tThank you for your patience. "  
+        "Our Development Team have now investigated and were unable to find any changes on your account, "
+        "which means you should be able to log in as usual. \n\n"
+        "If you are still having trouble accessing your account, we recommend trying to reset your password by following these steps:\n" 
+        "  * Go to www.funimation.com/log-in\n"
+        "  * Select Forgot Password\n"
+        "  * Enter the email address associated with your Funimation account\n"
+        "  * Select Send\n"
+        "If you have any further questions, please reach out to us at help@funimation.com.")
     else:
         print("Invalid macro type,", macro)
         exit()
 
     # TODO: what to do with the author_id? Can we grab it from the ticket audit api?
-    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": 7519464586 }}}
+    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": assignee_id }}}
     return formatted
 
 if __name__ =="__main__":
