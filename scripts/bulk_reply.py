@@ -14,6 +14,7 @@ config = configparser.RawConfigParser()
 config.read('./src/auth.ini')
 DOMAIN = config['zendesk']['Domain'].strip('"')
 AUTH = config['zendesk']['Credentials'].strip('"')
+TAG = config['zendesk']['Skipper_Tag'].strip('"')
 
 def main(logger,args): 
     print(args)
@@ -40,7 +41,7 @@ def generate_worksheet(sup_csv, eng_csv):
     print(doc_lst)
     return doc_lst
 
-def get_ticket_assignee(dom, auth, ticket_num):
+def get_ticket_data(dom, auth, ticket_num):
     url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
     print("URL, ", url)
     header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1])}
@@ -48,18 +49,24 @@ def get_ticket_assignee(dom, auth, ticket_num):
     
     try:
         result = requests.get(url, headers=header)
-        assignee_id = json.loads(result.text)['ticket']['assignee_id']
-        return assignee_id
+        ticket_data = json.loads(result.text)
+        tags = ticket_data['ticket']['tags']
+        skipper_tag = TAG in tags
+        assignee_id = ticket_data['ticket']['assignee_id']
+        return skipper_tag, assignee_id
     except Exception as e:
         print('Error posting comment', str(e))
         exit()
 
 def post_comment(dom, auth, ticket_num, macro):
-    url = 'https://{}.zendesk.com/api/v2/tickets/{}.json'.format(dom, ticket_num)
+    skipper_tag, assignee_id = get_ticket_data(dom, auth, ticket_num)
+    if skipper_tag:
+        return - 1
+    url = 'https://{}.zendesk.com/api/v2/tickets/update_many.json?ids={}'.format(dom, ticket_num)
     print("URL, ", url)
     header = {"Authorization": "Basic {}".format(str(b64encode(auth.encode('utf-8')))[2:-1]), 'Content-type': 'application/json'}
     print("HEADER, ", header)
-    dat = get_macro_data(macro, get_ticket_assignee(dom, auth, ticket_num))
+    dat = get_macro_data(macro, assignee_id)
     print("DATA, ", dat)
     try:
         result = requests.put(url, data=json.dumps(dat), headers=header)
@@ -113,7 +120,7 @@ def get_macro_data(macro, assignee_id):
         exit()
 
     # TODO: what to do with the author_id? Can we grab it from the ticket audit api?
-    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": assignee_id }}}
+    formatted = {"ticket": {"comment": { "body": "{}".format(scenario), "author_id": assignee_id }, "additional_tags": TAG}}
     return formatted
 
 if __name__ =="__main__":
