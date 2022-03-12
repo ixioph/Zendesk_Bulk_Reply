@@ -1,10 +1,4 @@
 [zendesk]
 Domain = "yourZendeskDomain"
 Credentials = "YOURZENDESKEMAIL@yourbiz.com/token:YOURZENDESKAPIKEY"
-
-[email]
-Sender = "theSendingEmail@yourbiz.com"
-Password = "yourSendingEmailPassword"
-Recipient = "theRecipientEmail@theirbiz.com"
-
-[misc]
+Skipper_Tag = "yourSKIPPERtag"
